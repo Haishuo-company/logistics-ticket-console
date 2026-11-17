@@ -2,8 +2,14 @@ node_modules/
 .git/
 .wbapp_*.genie
 .workbuddy/
+data/
+deploy/
+android/.gradle/
+android/**/build/
+android/local.properties
 *.png
-_check.js
-_test.js
+_*.js
+_*.log
 _probe*.html
-_cdp*.js
+*debug.keystore
+*.apk
