@@ -1,5 +1,10 @@
 # 群事项 · 物流工单控制台 — 交付说明
 
+## 在线与立项
+- 线上访问：<https://logistics-ticket-console.app.workbuddy.host/?sharecode=D22JKAMYR2>
+- GitHub：<https://github.com/Haishuo-company/logistics-ticket-console>（main，commit e58a2e6）
+- Notion「项目」库立项页：项目编号 HS-TICKET-20261117（状态：待验收）
+
 ## 交付物
 - `logistics-ticket-console.html` — 单文件互动网页，双击即可在浏览器打开，无需构建、无需联网。
 - 响应式单文件：同一份代码自动适配电脑 / 手机，无需维护两个版本。
