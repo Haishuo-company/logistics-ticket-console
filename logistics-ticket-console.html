@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>群事项 · 物流工单控制台</title>
+<style>
+:root{
+  --ink:#1d2a33; --ink2:#2b3b46; --bg:#eceef0; --surface:#fff;
+  --line:#dde2e6; --lineSoft:#edf0f2;
+  --text:#24323b; --text2:#5c6b74; --text3:#8b979e;
+  --amber:#c2821b; --amber2:#e0a63c; --amberSoft:#faf1de;
+  --pending:#3f74a8; --due:#cf8a19; --overdue:#c0392b; --verify:#7a5aa4; --done:#4f8a63;
+  --shadow:0 8px 30px rgba(29,42,51,.14);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg); color:var(--text); font-size:14px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"SF Mono",Consolas,"Roboto Mono",monospace}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:14px}
+
+/* ============ 顶部栏 ============ */
+.topbar{
+  height:60px; background:var(--ink); color:#fff; display:flex; align-items:center;
+  padding:0 22px; gap:20px; position:sticky; top:0; z-index:50;
+  border-bottom:3px solid var(--amber);
+}
+.brand{display:flex;align-items:center;gap:11px;min-width:300px}
+.brand-mark{
+  width:34px;height:34px;background:var(--amber);border-radius:6px;display:flex;
+  align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#1d2a33;
+  letter-spacing:-1px;
+}
+.brand h1{font-size:16px;font-weight:700;letter-spacing:.3px}
+.brand .sub{font-size:11px;color:#9fb0ba;margin-top:1px}
+.top-search{flex:1;max-width:420px;position:relative}
+.top-search input{
+  width:100%;height:36px;border:1px solid #3d4d58;background:#26343e;border-radius:6px;
+  color:#fff;padding:0 14px 0 36px;outline:none;
+}
+.top-search input:focus{border-color:var(--amber2);background:#2b3a45}
+.top-search input::placeholder{color:#85949e}
+.top-search svg{position:absolute;left:11px;top:10px;opacity:.6}
+.top-actions{display:flex;align-items:center;gap:12px;margin-left:auto}
+.remind{
+  display:flex;align-items:center;gap:6px;font-size:12px;color:#cbd6dd;
+  padding:6px 10px;border:1px solid #3d4d58;border-radius:20px;
+}
+.remind b{background:var(--overdue);color:#fff;border-radius:10px;padding:0 7px;font-size:11px;line-height:18px}
+.btn-primary{
+  height:36px;background:var(--amber);color:#1d2a33;border:none;border-radius:6px;
+  padding:0 16px;font-weight:700;font-size:13px;display:flex;align-items:center;gap:7px;
+}
+.btn-primary:hover{background:var(--amber2)}
+
+/* ============ 队列看板 ============ */
+.queues{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:16px 22px 4px}
+.queue{
+  background:var(--surface);border:1px solid var(--line);border-radius:8px;
+  padding:14px 16px 13px;position:relative;cursor:pointer;overflow:hidden;
+  transition:transform .12s,border-color .12s,box-shadow .12s;
+}
+.queue:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(29,42,51,.08)}
+.queue.active{border-color:var(--qc);box-shadow:0 0 0 2px var(--qc) inset}
+.queue::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--qc)}
+.q-top{display:flex;align-items:center;justify-content:space-between}
+.q-name{font-size:13px;color:var(--text2);font-weight:600}
+.q-icon{width:26px;height:26px;border-radius:6px;background:var(--qbg);color:var(--qc);
+  display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800}
+.q-num{font-size:30px;font-weight:800;color:var(--qc);line-height:1.15;margin-top:6px}
+.q-num small{font-size:12px;font-weight:500;color:var(--text3);margin-left:5px}
+.q-foot{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* ============ 工具栏 ============ */
+.toolbar{
+  margin:12px 22px 0;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.viewtabs{display:flex;background:var(--bg);border-radius:6px;padding:3px;gap:2px}
+.viewtabs button{
+  border:none;background:transparent;padding:6px 14px;border-radius:4px;font-size:13px;
+  color:var(--text2);font-weight:600;
+}
+.viewtabs button.active{background:var(--surface);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.filter-sep{width:1px;height:24px;background:var(--line);margin:0 2px}
+.filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.filters label{font-size:12px;color:var(--text3)}
+.filters select{
+  height:32px;border:1px solid var(--line);border-radius:5px;background:#fff;color:var(--text);
+  padding:0 26px 0 9px;font-size:12px;outline:none;max-width:140px;
+}
+.filters select:focus{border-color:var(--amber2)}
+.btn-clear{border:1px solid var(--line);background:#fff;color:var(--text2);height:32px;
+  padding:0 12px;border-radius:5px;font-size:12px}
+.btn-clear:hover{border-color:var(--overdue);color:var(--overdue)}
+.result-count{margin-left:auto;font-size:12px;color:var(--text3)}
+.result-count b{color:var(--text);font-size:14px}
+
+/* ============ 工单列表 ============ */
+.content{padding:14px 22px 40px}
+.table-wrap{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:auto}
+table.tickets{width:100%;border-collapse:collapse;min-width:1050px}
+table.tickets th{
+  text-align:left;font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.5px;
+  padding:11px 12px;background:#f7f8f9;border-bottom:1px solid var(--line);white-space:nowrap;
+}
+table.tickets td{padding:11px 12px;border-bottom:1px solid var(--lineSoft);font-size:13px;vertical-align:middle}
+table.tickets tr:last-child td{border-bottom:none}
+table.tickets tbody tr{cursor:pointer;transition:background .1s}
+table.tickets tbody tr:hover{background:#fbf8f1}
+.tid{font-size:12px;color:var(--pending);font-weight:700;letter-spacing:.3px}
+.ttitle{font-weight:600;color:var(--ink);max-width:280px;line-height:1.35}
+.ttitle .flags{display:inline-flex;gap:4px;margin-top:4px}
+.st{padding:3px 9px;border-radius:4px;font-size:11px;font-weight:700;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:5px}
+.st::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.st-pending{background:#eaf2fa;color:var(--pending)}
+.st-due{background:#fbf1dd;color:#a86c0d}
+.st-overdue{background:#fbe9e7;color:var(--overdue)}
+.st-verify{background:#f2ecf9;color:var(--verify)}
+.st-done{background:#e9f3ec;color:var(--done)}
+.chip{display:inline-block;font-size:11px;padding:2px 7px;border-radius:3px;background:#eef1f3;color:var(--text2);white-space:nowrap}
+.chip.plate{background:#eef0f2;color:#39454d;font-family:"SF Mono",Consolas,monospace;letter-spacing:.3px}
+.chip.verify{background:#f2ecf9;color:var(--verify)}
+.chip.cross{background:#fdf0e3;color:#a9701a}
+.chip.conflict{background:#fbe9e7;color:var(--overdue)}
+.chip.evi{background:#eaf2fa;color:var(--pending)}
+.due-txt{font-size:12px;white-space:nowrap}
+.due-txt.od{color:var(--overdue);font-weight:700}
+.due-txt.soon{color:#a86c0d;font-weight:700}
+.ver-badge{font-size:11px;color:var(--text3);font-family:"SF Mono",Consolas,monospace}
+.empty{padding:60px 20px;text-align:center;color:var(--text3)}
+.empty b{display:block;color:var(--text2);font-size:15px;margin-bottom:6px}
+
+/* ============ 跨群汇总 ============ */
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+.sum-card{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.sum-head{padding:13px 16px;border-bottom:1px solid var(--lineSoft);display:flex;align-items:center;justify-content:space-between}
+.sum-head .g{font-weight:700;color:var(--ink)}
+.sum-head .c{font-size:12px;color:var(--text3)}
+.sum-body{padding:13px 16px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px}
+.bar-row span:first-child{width:56px;color:var(--text2)}
+.bar-track{flex:1;height:9px;background:var(--bg);border-radius:5px;overflow:hidden;display:flex}
+.bar-seg{height:100%}
+.bar-row b{width:20px;text-align:right;color:var(--text)}
+.sum-foot{padding:10px 16px;background:#fafbfb;border-top:1px solid var(--lineSoft);font-size:12px;color:var(--text2)}
+.sum-foot b{color:var(--amber)}
+
+/* ============ 详情抽屉 ============ */
+.overlay{position:fixed;inset:0;background:rgba(29,42,51,.42);z-index:80;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.show{opacity:1;pointer-events:auto}
+.drawer{
+  position:fixed;top:0;right:0;bottom:0;width:600px;max-width:94vw;background:var(--surface);
+  z-index:90;box-shadow:-12px 0 40px rgba(0,0,0,.15);transform:translateX(105%);
+  transition:transform .25s cubic-bezier(.2,.7,.3,1);display:flex;flex-direction:column;
+}
+.drawer.show{transform:translateX(0)}
+.dr-head{padding:18px 22px 15px;border-bottom:1px solid var(--line);background:var(--ink);color:#fff;flex-shrink:0}
+.dr-head .tid{color:var(--amber2)}
+.dr-head h2{font-size:18px;margin:6px 0 8px;line-height:1.35}
+.dr-head .meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.dr-head .st{font-size:11px}
+.dr-close{position:absolute;right:16px;top:16px;background:rgba(255,255,255,.12);border:none;color:#fff;
+  width:30px;height:30px;border-radius:5px;font-size:18px;line-height:1}
+.dr-close:hover{background:rgba(255,255,255,.22)}
+.dr-tabs{display:flex;border-bottom:1px solid var(--line);padding:0 14px;gap:2px;flex-shrink:0;background:#fafbfb}
+.dr-tabs button{border:none;background:transparent;padding:12px 13px;font-size:13px;color:var(--text2);
+  font-weight:600;border-bottom:2px solid transparent}
+.dr-tabs button.active{color:var(--amber);border-bottom-color:var(--amber)}
+.dr-body{flex:1;overflow-y:auto;padding:18px 22px 40px}
+.tabpane{display:none}
+.tabpane.active{display:block}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--lineSoft);border:1px solid var(--lineSoft);border-radius:6px;overflow:hidden}
+.info-cell{background:#fff;padding:11px 13px}
+.info-cell .k{font-size:11px;color:var(--text3);margin-bottom:3px}
+.info-cell .v{font-size:13px;color:var(--text);font-weight:600;word-break:break-all}
+.sec{margin-top:20px}
+.sec-t{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.5px;margin-bottom:9px;
+  display:flex;align-items:center;gap:7px}
+.sec-t::before{content:"";width:3px;height:13px;background:var(--amber);border-radius:2px}
+.notice{background:var(--amberSoft);border:1px solid #ecd9a8;border-radius:6px;padding:10px 12px;
+  font-size:12px;color:#8a6412;line-height:1.55}
+.notice.verify{background:#f5f0fb;border-color:#ddd0ee;color:#6c4f95}
+.notice.conflict{background:#fceceb;border-color:#f0cfcb;color:#a83226}
+.raw-msg{border:1px solid var(--line);border-left:3px solid var(--pending);border-radius:5px;
+  padding:9px 12px;margin-bottom:8px;background:#fcfdfd}
+.raw-msg .m-h{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--text3);margin-bottom:4px}
+.raw-msg .m-h b{color:var(--text);font-size:12px}
+.raw-msg .m-c{font-size:13px;color:var(--text);white-space:pre-wrap;word-break:break-word}
+.evi-item{display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:5px;
+  padding:8px 11px;margin-bottom:7px;font-size:12px}
+.evi-item .ecode{background:#eaf2fa;color:var(--pending);font-weight:700;padding:2px 7px;border-radius:3px;
+  font-family:"SF Mono",Consolas,monospace}
+.timeline{position:relative;padding-left:22px}
+.timeline::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.tl-item{position:relative;padding-bottom:16px}
+.tl-item::before{content:"";position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;
+  background:#fff;border:2px solid var(--tc,var(--amber))}
+.tl-time{font-size:11px;color:var(--text3);font-family:"SF Mono",Consolas,monospace}
+.tl-content{font-size:13px;color:var(--text);margin-top:2px}
+.tl-type{font-size:10px;color:var(--tc,var(--text2));font-weight:700;margin-left:6px}
+.follow-box{display:flex;gap:7px;margin-top:10px}
+.follow-box input{height:34px;border:1px solid var(--line);border-radius:5px;padding:0 10px;flex:1;outline:none}
+.follow-box input:focus{border-color:var(--amber2)}
+.follow-box button{height:34px;background:var(--ink);color:#fff;border:none;border-radius:5px;padding:0 14px;font-size:12px;font-weight:600}
+.ver-item{border:1px solid var(--line);border-radius:6px;margin-bottom:9px;overflow:hidden}
+.ver-head{padding:9px 12px;background:#f8f9fa;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:12px}
+.ver-head:hover{background:#f2f4f5}
+.ver-head b{color:var(--verify);font-family:"SF Mono",Consolas,monospace}
+.ver-detail{padding:10px 12px;font-size:12px;color:var(--text2);display:none;border-top:1px solid var(--lineSoft)}
+.ver-detail.open{display:block}
+.ver-detail .kv{margin-bottom:4px}
+.ver-detail .kv b{color:var(--text)}
+
+/* ============ 导入弹窗 ============ */
+.modal{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;
+  background:rgba(29,42,51,.5);opacity:0;pointer-events:none;transition:opacity .2s}
+.modal.show{opacity:1;pointer-events:auto}
+.modal-box{background:var(--surface);width:720px;max-width:94vw;max-height:90vh;display:flex;flex-direction:column;
+  border-radius:10px;box-shadow:var(--shadow);transform:translateY(10px);transition:transform .2s}
+.modal.show .modal-box{transform:translateY(0)}
+.modal-head{padding:17px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+.modal-head h3{font-size:17px;color:var(--ink)}
+.modal-head .x{background:none;border:none;font-size:22px;color:var(--text3);line-height:1}
+.modal-body{padding:20px 22px;overflow-y:auto}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px}
+.field select{height:36px;border:1px solid var(--line);border-radius:5px;padding:0 10px;width:100%;outline:none}
+.field textarea{width:100%;height:170px;border:1px solid var(--line);border-radius:6px;padding:11px 12px;
+  resize:vertical;outline:none;line-height:1.6;font-size:13px}
+.field textarea:focus{border-color:var(--amber2)}
+.hint{font-size:11px;color:var(--text3);margin-top:5px;line-height:1.5}
+.link-btn{background:none;border:none;color:var(--pending);font-size:12px;padding:0;text-decoration:underline}
+.modal-foot{padding:14px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;align-items:center}
+.btn-ghost{height:36px;border:1px solid var(--line);background:#fff;color:var(--text2);border-radius:6px;padding:0 16px;font-size:13px}
+.btn-ghost:hover{border-color:var(--text3)}
+.parse-result{border:1px solid var(--line);border-radius:7px;overflow:hidden;margin-top:6px}
+.pr-head{background:#f7f8f9;padding:9px 13px;font-size:12px;font-weight:700;color:var(--text2);border-bottom:1px solid var(--line)}
+.pr-body{padding:13px}
+.pr-facts{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:11px}
+.pr-edit{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pr-edit .full{grid-column:1/-1}
+.pr-edit input,.pr-edit select{height:34px;border:1px solid var(--line);border-radius:5px;padding:0 9px;width:100%;outline:none;font-size:13px}
+.merge-tip{background:var(--amberSoft);border:1px solid #ecd9a8;border-radius:6px;padding:9px 12px;font-size:12px;color:#8a6412;margin-bottom:11px}
+
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);
+  color:#fff;padding:11px 20px;border-radius:7px;font-size:13px;z-index:200;opacity:0;pointer-events:none;
+  transition:.25s;box-shadow:var(--shadow)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast b{color:var(--amber2)}
+
+/* ============ 响应式：平板 ============ */
+@media(max-width:1100px){
+  .queues{grid-template-columns:repeat(3,1fr)}
+  .top-search{max-width:300px}
+}
+.fi{display:flex;align-items:center;gap:6px}
+.filter-toggle{display:none;align-items:center;gap:5px;height:32px;border:1px solid var(--line);
+  background:#fff;color:var(--text2);border-radius:5px;padding:0 11px;font-size:12px;font-weight:600}
+.filter-toggle i{width:6px;height:6px;border-radius:50%;background:#c3cbd0;font-style:normal}
+
+/* ============ 响应式：手机 ============ */
+@media(max-width:767px){
+  .topbar{height:auto;min-height:56px;padding:9px 13px;gap:9px;flex-wrap:wrap}
+  .brand{min-width:0;flex:1}
+  .brand-mark{width:30px;height:30px;font-size:14px}
+  .brand h1{font-size:14px}
+  .brand .sub{display:none}
+  .top-search{order:9;flex:0 0 100%;max-width:none}
+  .top-search input{height:34px}
+  .top-actions{margin-left:0;gap:7px}
+  .remind{font-size:0;padding:4px 8px;gap:0;border-radius:14px}
+  .remind b{font-size:11px;line-height:16px}
+  .btn-primary{height:32px;padding:0 11px;font-size:12px}
+
+  .queues{grid-template-columns:repeat(2,1fr);gap:9px;padding:11px 13px 2px}
+  .queue{padding:11px 12px}
+  .queue:last-child{grid-column:span 2}
+  .q-num{font-size:26px}
+  .q-name{font-size:12px}
+  .q-icon{width:22px;height:22px;font-size:12px}
+  .q-foot{font-size:10px}
+
+  .toolbar{margin:10px 13px 0;padding:9px 10px;gap:8px}
+  .filter-sep{display:none}
+  .filter-toggle{display:inline-flex}
+  .filters{display:none;order:9;flex:0 0 100%;border-top:1px solid var(--lineSoft);padding-top:10px;gap:9px}
+  .filters.open{display:flex}
+  .filters .fi{flex:0 0 calc(50% - 5px);flex-direction:column;align-items:stretch;gap:3px}
+  .filters .fi label{font-size:11px}
+  .filters .fi select{width:100%;max-width:none;flex:none;height:32px}
+  .btn-clear{flex:0 0 100%}
+  .result-count{margin-left:auto;font-size:11px}
+  .viewtabs button{padding:5px 11px;font-size:12px}
+  .content{padding:12px 13px 30px}
+
+  /* 表格转卡片 */
+  .table-wrap{border:none;background:transparent;overflow:visible}
+  table.tickets{display:block;min-width:0}
+  table.tickets thead{display:none}
+  table.tickets tbody{display:block}
+  table.tickets tbody tr{display:block;background:#fff;border:1px solid var(--line);
+    border-radius:8px;margin-bottom:10px;padding:12px 14px}
+  table.tickets td{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+    padding:5px 0;border:none;text-align:right;font-size:12px}
+  table.tickets td::before{content:attr(data-label);color:var(--text3);font-size:11px;
+    font-weight:600;flex-shrink:0;text-align:left;padding-top:2px}
+  table.tickets td:nth-child(2){display:block;text-align:left;padding:0 0 9px;
+    border-bottom:1px dashed var(--lineSoft);margin-bottom:6px}
+  table.tickets td:nth-child(2)::before{display:none}
+  .ttitle{max-width:none!important;font-size:14px}
+  .ttitle .flags{margin-top:6px}
+  .empty{background:#fff;border:1px solid var(--line);border-radius:8px}
+
+  .summary-grid{grid-template-columns:1fr}
+  .drawer{width:100%;max-width:100%}
+  .dr-head{padding:14px 16px}
+  .dr-head h2{font-size:16px}
+  .dr-close{right:12px;top:12px}
+  .dr-tabs{padding:0 4px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .dr-tabs button{padding:11px 10px;font-size:12px;white-space:nowrap}
+  .dr-body{padding:14px 16px 30px}
+  .info-grid{grid-template-columns:1fr}
+  .modal-box{width:100%;max-width:100%;height:100%;max-height:100%;border-radius:0}
+  .modal-head{padding:14px 16px}
+  .modal-body{padding:14px 16px}
+  .modal-foot{padding:12px 16px;gap:8px}
+  .modal-foot .btn-primary,.modal-foot .btn-ghost{flex:1;justify-content:center;padding:0 8px}
+  .field textarea{height:150px}
+  .pr-edit{grid-template-columns:1fr}
+  .toast{width:calc(100% - 40px);text-align:center}
+}
+@media(max-width:380px){
+  .queues{gap:7px;padding:9px 10px 2px}
+  .queue{padding:10px}
+  .q-num{font-size:23px}
+  .content{padding:10px 10px 26px}
+  .toolbar{margin:9px 10px 0}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">群单</div>
+    <div><h1>群事项 · 物流工单控制台</h1><div class="sub">把群聊整理成可追踪、可追溯的工单</div></div>
+  </div>
+  <div class="top-search">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+    <input id="searchInput" placeholder="搜索工单号 / 事项 / 客户 / 车牌 / 订单号…">
+  </div>
+  <div class="top-actions">
+    <div class="remind">跟进提醒 <b id="remindCount">0</b></div>
+    <button class="btn-primary" id="openImportBtn">＋ 导入聊天提炼事项</button>
+  </div>
+</header>
+
+<section class="queues" id="queues"></section>
+
+<div class="toolbar">
+  <div class="viewtabs">
+    <button class="active" data-view="list">工单列表</button>
+    <button data-view="summary">跨群汇总</button>
+  </div>
+  <button class="filter-toggle" id="filterToggle"><i></i>筛选 ▾</button>
+  <div class="filter-sep"></div>
+  <div class="filters" id="filters">
+    <div class="fi"><label>责任人</label><select data-filter="assignee"></select></div>
+    <div class="fi"><label>群组</label><select data-filter="group"></select></div>
+    <div class="fi"><label>客户</label><select data-filter="customer"></select></div>
+    <div class="fi"><label>车辆</label><select data-filter="vehicle"></select></div>
+    <div class="fi"><label>订单</label><select data-filter="order"></select></div>
+    <div class="fi"><label>状态</label><select data-filter="status"></select></div>
+    <button class="btn-clear" id="clearFilters">清除筛选</button>
+  </div>
+  <div class="result-count">共 <b id="resultCount">0</b> 条工单</div>
+</div>
+
+<main class="content">
+  <div id="listView"><div class="table-wrap" id="tableWrap"></div></div>
+  <div id="summaryView" style="display:none"><div class="summary-grid" id="summaryGrid"></div></div>
+</main>
+
+<div class="overlay" id="overlay"></div>
+<aside class="drawer" id="drawer">
+  <div class="dr-head" id="drHead"></div>
+  <div class="dr-tabs" id="drTabs">
+    <button class="active" data-tab="detail">详情</button>
+    <button data-tab="timeline">时间线</button>
+    <button data-tab="raw">原始消息</button>
+    <button data-tab="evidence">证据</button>
+    <button data-tab="version">历史版本</button>
+  </div>
+  <div class="dr-body" id="drBody"></div>
+</aside>
+
+<div class="modal" id="importModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>导入聊天 · 提炼事项</h3>
+      <button class="x" id="closeImportBtn">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>来源群组</label>
+        <select id="impGroup"></select>
+      </div>
+      <div class="field">
+        <label>粘贴微信群聊天内容</label>
+        <textarea id="impText" placeholder="示例格式：&#10;王铁锤 09:32 @李伟 和记火锅那单液蜡，客户说还没到，查下车豫A·8F621的位置，订单DD20261116001&#10;李伟 09:35 我查一下轨迹，这个要核实&#10;张敏 09:41 @王铁锤 客户刚打电话又催了，说再不到就投诉"></textarea>
+        <div class="hint">支持「姓名 时间 内容」或「时间 姓名：内容」格式。可识别车牌、订单号、金额、@责任人、核实/逾期等关键词。<button class="link-btn" id="loadSampleBtn">载入示例聊天</button></div>
+      </div>
+      <div id="parseArea"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" id="cancelImportBtn">取消</button>
+      <button class="btn-primary" id="parseBtn">解析聊天内容</button>
+      <button class="btn-primary" id="confirmAddBtn" style="display:none">确认生成工单</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ==================== 工具 ==================== */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ATTR = esc;
+const pad = n => String(n).padStart(2,'0');
+function dayOffset(n){const d=new Date();d.setDate(d.getDate()+n);return pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function fullDate(n){const d=new Date();d.setDate(d.getDate()+n);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+const nowStamp = () => {const d=new Date();return pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());};
+
+const STATUS = {
+  pending:{label:'待处理',cls:'st-pending',color:'#3f74a8',bg:'#eaf2fa',icon:'待'},
+  due:{label:'即将到期',cls:'st-due',color:'#cf8a19',bg:'#fbf1dd',icon:'近'},
+  overdue:{label:'已逾期',cls:'st-overdue',color:'#c0392b',bg:'#fbe9e7',icon:'逾'},
+  verify:{label:'待核实',cls:'st-verify',color:'#7a5aa4',bg:'#f2ecf9',icon:'核'},
+  done:{label:'已完成',cls:'st-done',color:'#4f8a63',bg:'#e9f3ec',icon:'完'}
+};
+const QORDER = ['pending','due','overdue','verify','done'];
+
+/* ==================== 示例数据（日期动态生成） ==================== */
+const GROUPS = ['油小将-郑州配送群','海硕物流调度群','中通-郑州转运群','和记火锅对接群','韵达-售后处理群'];
+const ASSIGNEES = ['王铁锤','李伟','张敏','赵磊','陈静','刘洋'];
+const CUSTOMERS = ['和记火锅','金水湾酒店','鼎盛粮油','聚仙楼','郑东新区食堂','豫粮商贸'];
+const VEHICLES = ['豫A·8F621','豫A·3K529','豫V·2D318','豫A·6Q187'];
+const ORDERS = ['DD20261116001','DD20261115027','DD20261114009','DD20261113044','DD20261117002'];
+
+function msg(group,sender,time,content){return {group,sender,time,content};}
+function ver(v,time,change,snapshot){return {v,time,change,snapshot};}
+function tl(time,type,content){return {time,type,content};}
+
+let tickets = [];
+function seedData(){
+  tickets = [
+  {
+    id:'GD-2026-0117-001', title:'和记火锅液蜡配送延迟，客户称未收到',
+    status:'overdue', assignee:'李伟', group:'油小将-郑州配送群',
+    customer:'和记火锅', vehicle:'豫A·8F621', order:'DD20261116001',
+    dueOffset:-1, createdOffset:-2, evidence:['证-2026-1116-001','证-2026-1116-003'],
+    contradictions:['司机在司机群称 09:50 已送达并拍照，客户在对接群 11:20 仍反馈未收到，双方说法冲突，尚未核实'],
+    crossGroup:true, needsVerify:true, priority:'高', version:3,
+    raw:[
+      msg('油小将-郑州配送群','王铁锤','11-16 09:32','@李伟 和记火锅那单液蜡，客户说还没到，查下车豫A·8F621的位置，订单DD20261116001'),
+      msg('油小将-郑州配送群','李伟','11-16 09:35','我查一下轨迹，这个要核实'),
+      msg('和记火锅对接群','客户-孙经理','11-16 11:20','油还没送到，下午宴席要用，麻烦尽快'),
+      msg('油小将-郑州配送群','刘洋','11-16 11:45','司机说9点50就到了，拍了照，是不是客户那边没接电话')
+    ],
+    timeline:[
+      tl('11-16 09:32','创建','王铁锤从群聊提炼事项，生成工单'),
+      tl('11-16 09:35','跟进','李伟认领，查询车辆轨迹（待核实）'),
+      tl('11-16 11:20','消息','客户再次催单，情绪激动'),
+      tl('11-16 11:45','矛盾','发现送达说法冲突，标记未解决矛盾'),
+      tl('11-16 14:10','转派','跨群转派至和记火锅对接群跟进')
+    ],
+    history:[
+      ver(1,'11-16 09:35','工单创建',{status:'pending',assignee:'李伟',title:'和记火锅液蜡配送延迟'}),
+      ver(2,'11-16 11:45','追加客户反馈与矛盾标记',{status:'due',assignee:'李伟',title:'和记火锅液蜡配送延迟，客户称未收到'}),
+      ver(3,'11-16 14:10','合并对接群消息，转派并置为逾期',{status:'overdue',assignee:'李伟',title:'和记火锅液蜡配送延迟，客户称未收到'})
+    ],
+    notes:'当前状态以工单记录为准；送达情况待核实，不作为事实。'
+  },
+  {
+    id:'GD-2026-0117-002', title:'豫A·3K529 车辆轨迹异常，定位与群内说法不符',
+    status:'verify', assignee:'赵磊', group:'海硕物流调度群',
+    customer:'鼎盛粮油', vehicle:'豫A·3K529', order:'DD20261115027',
+    dueOffset:1, createdOffset:-1, evidence:['证-2026-1116-007'],
+    contradictions:[], crossGroup:false, needsVerify:true, priority:'中', version:2,
+    raw:[
+      msg('海硕物流调度群','赵磊','11-16 15:02','豫A·3K529 轨迹显示下午2点在仓库，但司机说到客户那了，这个轨迹要核实'),
+      msg('海硕物流调度群','陈静','11-16 15:10','定位系统是不是延迟了？先别下结论')
+    ],
+    timeline:[
+      tl('11-16 15:02','创建','提炼轨迹异常事项，标记待核实'),
+      tl('11-16 15:10','跟进','陈静提示定位可能延迟，保持待核实')
+    ],
+    history:[ver(1,'11-16 15:02','工单创建',{status:'verify',assignee:'赵磊'})],
+    notes:'物流轨迹属外部核验信息，标记待核实，未确认前不作为事实。'
+  },
+  {
+    id:'GD-2026-0117-003', title:'金水湾酒店植物油送货单据与客户联不一致',
+    status:'pending', assignee:'张敏', group:'油小将-郑州配送群',
+    customer:'金水湾酒店', vehicle:'豫V·2D318', order:'DD20261114009',
+    dueOffset:2, createdOffset:-3, evidence:['证-2026-1114-002'],
+    contradictions:['客户联数量 20 桶，司机回单 18 桶，差异待核实'],
+    crossGroup:true, needsVerify:true, priority:'高', version:2,
+    raw:[
+      msg('油小将-郑州配送群','张敏','11-14 10:20','@王铁锤 金水湾酒店说单据不对，客户联20桶，回单18桶'),
+      msg('金水湾对接群','客户-周厨','11-14 10:35','我们签收的是20桶，单子你们拿回去改一下')
+    ],
+    timeline:[
+      tl('11-14 10:20','创建','从配送群提炼单据不符事项'),
+      tl('11-14 10:35','转派','跨群转派至金水湾对接群核对')
+    ],
+    history:[ver(1,'11-14 10:20','工单创建',{status:'pending',assignee:'张敏'}),ver(2,'11-14 10:35','追加客户联口径',{status:'pending',assignee:'张敏'})],
+    notes:'数量差异需以双方签收单原件核实。'
+  },
+  {
+    id:'GD-2026-0117-004', title:'中通转运破损件理赔资料待补齐',
+    status:'due', assignee:'王铁锤', group:'中通-郑州转运群',
+    customer:'豫粮商贸', vehicle:'', order:'DD20261113044',
+    dueOffset:0, createdOffset:-2, evidence:['证-2026-1115-011','证-2026-1115-012'],
+    contradictions:[], crossGroup:false, needsVerify:false, priority:'中', version:1,
+    raw:[
+      msg('中通-郑州转运群','王铁锤','11-15 16:40','豫粮商贸那票破损件，理赔资料还差签收照片，今天要补齐'),
+      msg('中通-郑州转运群','刘洋','11-15 16:45','收到，我催一下网点')
+    ],
+    timeline:[tl('11-15 16:40','创建','提炼理赔事项，设置今日到期')],
+    history:[ver(1,'11-15 16:40','工单创建',{status:'due',assignee:'王铁锤'})],
+    notes:''
+  },
+  {
+    id:'GD-2026-0117-005', title:'聚仙楼液蜡报价争议，客户要求复核单价',
+    status:'verify', assignee:'陈静', group:'油小将-郑州配送群',
+    customer:'聚仙楼', vehicle:'', order:'',
+    dueOffset:2, createdOffset:-1, evidence:[],
+    contradictions:['群内报价 6800/吨 与报价单 6900/吨 不一致，需外部核价'],
+    crossGroup:false, needsVerify:true, priority:'中', version:2,
+    raw:[
+      msg('油小将-郑州配送群','客户-聚仙楼','11-16 08:50','上次群里说的价格不是6800吗，怎么单子上6900？'),
+      msg('油小将-郑州配送群','陈静','11-16 09:05','我核一下当时的报价记录，先以核实为准')
+    ],
+    timeline:[tl('11-16 08:50','创建','提炼报价争议'),tl('11-16 09:05','跟进','陈静认领核价')],
+    history:[ver(1,'11-16 08:50','工单创建',{status:'verify',assignee:'陈静'}),ver(2,'11-16 09:05','追加核价说明',{status:'verify',assignee:'陈静'})],
+    notes:'价格属需外部核验信息，未确认前不作为结算依据。'
+  },
+  {
+    id:'GD-2026-0117-006', title:'郑东新区食堂灶具点火故障待上门',
+    status:'pending', assignee:'刘洋', group:'海硕物流调度群',
+    customer:'郑东新区食堂', vehicle:'豫A·6Q187', order:'',
+    dueOffset:3, createdOffset:-1, evidence:['证-2026-1116-020'],
+    contradictions:[], crossGroup:false, needsVerify:false, priority:'中', version:1,
+    raw:[
+      msg('海硕物流调度群','刘洋','11-16 13:20','郑东新区食堂灶具打不着火，约了后天上门，带上配件'),
+      msg('海硕物流调度群','王铁锤','11-16 13:22','好，处理完回单')
+    ],
+    timeline:[tl('11-16 13:20','创建','提炼上门维修事项')],
+    history:[ver(1,'11-16 13:20','工单创建',{status:'pending',assignee:'刘洋'})],
+    notes:''
+  },
+  {
+    id:'GD-2026-0117-007', title:'鼎盛粮油订单重复下单，已撤销一单',
+    status:'done', assignee:'王铁锤', group:'海硕物流调度群',
+    customer:'鼎盛粮油', vehicle:'', order:'DD20261114009',
+    dueOffset:-2, createdOffset:-4, evidence:['证-2026-1113-004'],
+    contradictions:[], crossGroup:false, needsVerify:false, priority:'低', version:2,
+    raw:[
+      msg('海硕物流调度群','张敏','11-13 09:10','鼎盛粮油重复下了一单，DD20261114009，撤销一个'),
+      msg('海硕物流调度群','王铁锤','11-13 09:30','已撤销并通知客户，关闭')
+    ],
+    timeline:[tl('11-13 09:10','创建','提炼重复下单事项'),tl('11-13 09:30','完成','撤销订单并关闭工单')],
+    history:[ver(1,'11-13 09:10','工单创建',{status:'pending',assignee:'张敏'}),ver(2,'11-13 09:30','处理完成关闭',{status:'done',assignee:'王铁锤'})],
+    notes:''
+  },
+  {
+    id:'GD-2026-0117-008', title:'韵达拦截件超时未处理，客户催办',
+    status:'overdue', assignee:'李伟', group:'韵达-售后处理群',
+    customer:'金水湾酒店', vehicle:'', order:'',
+    dueOffset:-2, createdOffset:-4, evidence:['证-2026-1113-009'],
+    contradictions:[], crossGroup:true, needsVerify:false, priority:'高', version:3,
+    raw:[
+      msg('韵达-售后处理群','李伟','11-13 17:00','金水湾酒店那票拦截件客户催了，今天必须处理'),
+      msg('韵达-售后处理群','赵磊','11-14 09:15','网点说还在拦截中，超时了'),
+      msg('海硕物流调度群','王铁锤','11-15 10:00','这单转调度群继续跟，别断了')
+    ],
+    timeline:[tl('11-13 17:00','创建','提炼拦截件事项'),tl('11-14 09:15','跟进','网点反馈仍在拦截，标记逾期'),tl('11-15 10:00','转派','跨群转派至调度群')],
+    history:[ver(1,'11-13 17:00','工单创建',{status:'due',assignee:'李伟'}),ver(2,'11-14 09:15','超时标记逾期',{status:'overdue',assignee:'李伟'}),ver(3,'11-15 10:00','跨群转派',{status:'overdue',assignee:'李伟'})],
+    notes:''
+  },
+  {
+    id:'GD-2026-0117-009', title:'客户投诉配送司机服务态度，待核实回放',
+    status:'verify', assignee:'张敏', group:'油小将-郑州配送群',
+    customer:'聚仙楼', vehicle:'豫A·8F621', order:'',
+    dueOffset:1, createdOffset:-1, evidence:[],
+    contradictions:['客户称司机态度差，司机称客户情绪激动，双方说法待核实'],
+    crossGroup:false, needsVerify:true, priority:'中', version:1,
+    raw:[
+      msg('油小将-郑州配送群','客户-聚仙楼','11-16 12:10','你们司机态度太差了，我要求处理'),
+      msg('油小将-郑州配送群','刘洋','11-16 12:20','先别急，我了解一下情况')
+    ],
+    timeline:[tl('11-16 12:10','创建','提炼客户投诉，标记待核实')],
+    history:[ver(1,'11-16 12:10','工单创建',{status:'verify',assignee:'张敏'})],
+    notes:'投诉内容需核实沟通记录后再定性。'
+  },
+  {
+    id:'GD-2026-0117-010', title:'液蜡批次质量待检，暂缓出库',
+    status:'pending', assignee:'赵磊', group:'海硕物流调度群',
+    customer:'豫粮商贸', vehicle:'', order:'DD20261117002',
+    dueOffset:1, createdOffset:0, evidence:['证-2026-1117-001'],
+    contradictions:[], crossGroup:false, needsVerify:true, priority:'高', version:1,
+    raw:[
+      msg('海硕物流调度群','赵磊','今天 10:05','新到那批液蜡先别出库，等质检结果，属待核实'),
+      msg('海硕物流调度群','王铁锤','今天 10:10','好，检完再说')
+    ],
+    timeline:[tl('今天 10:05','创建','提炼质量待检事项')],
+    history:[ver(1,'今天 10:05','工单创建',{status:'pending',assignee:'赵磊'})],
+    notes:'质检结果未出前，质量状态待核实。'
+  },
+  {
+    id:'GD-2026-0117-011', title:'群内收款与台账未对账',
+    status:'due', assignee:'陈静', group:'油小将-郑州配送群',
+    customer:'和记火锅', vehicle:'', order:'',
+    dueOffset:0, createdOffset:-1, evidence:['证-2026-1116-015'],
+    contradictions:[], crossGroup:false, needsVerify:false, priority:'中', version:1,
+    raw:[
+      msg('油小将-郑州配送群','陈静','11-16 18:00','今天群里收的款对一下台账，明早出结果')
+    ],
+    timeline:[tl('11-16 18:00','创建','提炼对账事项，设置到期')],
+    history:[ver(1,'11-16 18:00','工单创建',{status:'due',assignee:'陈静'})],
+    notes:''
+  },
+  {
+    id:'GD-2026-0117-012', title:'小火锅燃料应急补货已送达',
+    status:'done', assignee:'刘洋', group:'油小将-郑州配送群',
+    customer:'和记火锅', vehicle:'豫A·6Q187', order:'DD20261117002',
+    dueOffset:-1, createdOffset:-2, evidence:['证-2026-1115-018'],
+    contradictions:[], crossGroup:false, needsVerify:false, priority:'低', version:2,
+    raw:[
+      msg('油小将-郑州配送群','客户-孙经理','11-15 16:00','小火锅燃料快没了，今晚能补吗'),
+      msg('油小将-郑州配送群','刘洋','11-15 18:30','已送到，签收完毕')
+    ],
+    timeline:[tl('11-15 16:00','创建','提炼应急补货事项'),tl('11-15 18:30','完成','送达签收，关闭工单')],
+    history:[ver(1,'11-15 16:00','工单创建',{status:'pending',assignee:'刘洋'}),ver(2,'11-15 18:30','完成关闭',{status:'done',assignee:'刘洋'})],
+    notes:''
+  }
+  ];
+}
+
+/* 状态由 offset 推导；verify 显式保留 */
+function effectiveStatus(t){return t.status;}
+function dueDate(t){return fullDate(t.dueOffset);}
+function dueLabel(t){
+  if(t.status==='done') return '已完成';
+  const n=t.dueOffset;
+  if(n<0) return '逾期 '+(-n)+' 天 · '+dueDate(t);
+  if(n===0) return '今天到期 · '+dueDate(t);
+  return '还剩 '+n+' 天 · '+dueDate(t);
+}
+
+/* ==================== 状态 ==================== */
+let state={view:'list',status:'',assignee:'',group:'',customer:'',vehicle:'',order:'',q:'',openId:null,draft:null};
+
+/* ==================== 渲染：队列 ==================== */
+function renderQueues(){
+  const counts={};QORDER.forEach(s=>counts[s]=tickets.filter(t=>effectiveStatus(t)===s).length);
+  const foot={pending:'尚未认领/处理',due:'今日或近日到期',overdue:'已超过跟进时间',verify:'信息未经确认',done:'已归档关闭'};
+  $('#queues').innerHTML=QORDER.map(s=>{
+    const st=STATUS[s];
+    return `<div class="queue ${state.status===s?'active':''}" data-q="${s}" style="--qc:${st.color};--qbg:${st.bg}">
+      <div class="q-top"><span class="q-name">${st.label}</span><span class="q-icon">${st.icon}</span></div>
+      <div class="q-num">${counts[s]}<small>条</small></div>
+      <div class="q-foot">${foot[s]}</div></div>`;
+  }).join('');
+}
+
+/* ==================== 渲染：筛选 ==================== */
+function uniq(key){return [...new Set(tickets.map(t=>t[key]).filter(Boolean))];}
+function renderFilterOptions(){
+  const map={assignee:ASSIGNEES,group:GROUPS,customer:CUSTOMERS,vehicle:VEHICLES,order:ORDERS};
+  Object.keys(map).forEach(k=>{
+    const el=$(`select[data-filter="${k}"]`);
+    if(!el) return;
+    const opts=uniq(k);
+    el.innerHTML='<option value="">全部</option>'+opts.map(v=>`<option value="${ATTR(v)}">${esc(v)}</option>`).join('');
+  });
+  $('select[data-filter="status"]').innerHTML='<option value="">全部</option>'+QORDER.map(s=>`<option value="${s}">${STATUS[s].label}</option>`).join('');
+}
+function syncFilters(){
+  Object.keys(state).forEach(k=>{if(['assignee','group','customer','vehicle','order','status'].includes(k)){
+    const el=$(`select[data-filter="${k}"]`);if(el)el.value=state[k];}});
+}
+
+/* ==================== 过滤 ==================== */
+function filtered(){
+  const q=state.q.trim().toLowerCase();
+  return tickets.filter(t=>{
+    if(state.status && effectiveStatus(t)!==state.status) return false;
+    for(const k of ['assignee','group','customer','vehicle','order']){if(state[k] && t[k]!==state[k])return false;}
+    if(q){const hay=[t.id,t.title,t.assignee,t.group,t.customer,t.vehicle,t.order,...t.evidence].join(' ').toLowerCase();
+      if(!hay.includes(q))return false;}
+    return true;
+  });
+}
+
+/* ==================== 渲染：列表 ==================== */
+function renderList(){
+  const rows=filtered();
+  $('#resultCount').textContent=rows.length;
+  if(!rows.length){$('#tableWrap').innerHTML='<div class="empty"><b>没有匹配的工单</b>换个筛选条件，或清除筛选试试</div>';return;}
+  $('#tableWrap').innerHTML=`<table class="tickets"><thead><tr>
+    <th style="width:150px">工单号</th><th>事项</th><th style="width:100px">状态</th>
+    <th style="width:80px">责任人</th><th style="width:150px">来源群</th>
+    <th style="width:120px">客户 / 车辆</th><th style="width:130px">跟进时间</th>
+    <th style="width:60px">版本</th></tr></thead><tbody>
+    ${rows.map(t=>{
+      const st=STATUS[effectiveStatus(t)];
+      const cls=t.dueOffset<0?'od':(t.dueOffset<=0?'soon':'');
+      const flags=[...t.contradictions.slice(0,1).map(()=>'<span class="chip conflict">矛盾</span>'),
+        t.needsVerify?'<span class="chip verify">待核实</span>':'',
+        t.crossGroup?'<span class="chip cross">跨群</span>':'',
+        t.evidence.length?`<span class="chip evi">证据${t.evidence.length}</span>`:''].join('');
+      return `<tr data-id="${t.id}">
+        <td data-label="工单号"><span class="tid">${t.id}</span></td>
+        <td data-label="事项"><div class="ttitle">${esc(t.title)}<div class="flags">${flags}</div></div></td>
+        <td data-label="状态"><span class="st ${st.cls}">${st.label}</span></td>
+        <td data-label="责任人">${esc(t.assignee||'—')}</td>
+        <td data-label="来源群"><span class="chip">${esc(t.group||'—')}</span></td>
+        <td data-label="客户/车辆">${esc(t.customer||'—')}${t.vehicle?`<div style="margin-top:3px"><span class="chip plate">${esc(t.vehicle)}</span></div>`:''}</td>
+        <td data-label="跟进时间"><span class="due-txt ${cls}">${dueLabel(t)}</span></td>
+        <td data-label="版本"><span class="ver-badge">v${t.version}</span></td></tr>`;
+    }).join('')}
+  </tbody></table>`;
+}
+
+/* ==================== 渲染：跨群汇总 ==================== */
+function renderSummary(){
+  const gs=GROUPS.filter(g=>tickets.some(t=>t.group===g));
+  $('#summaryGrid').innerHTML=gs.map(g=>{
+    const list=tickets.filter(t=>t.group===g);
+    const segs=QORDER.map(s=>{
+      const c=list.filter(t=>effectiveStatus(t)===s).length;
+      return c?`<div class="bar-seg" style="width:${c/list.length*100}%;background:${STATUS[s].color}" title="${STATUS[s].label} ${c}"></div>`:'';
+    }).join('');
+    const cnt=s=>list.filter(t=>effectiveStatus(t)===s).length;
+    const cross=list.filter(t=>t.crossGroup).length;
+    const verify=list.filter(t=>t.needsVerify).length;
+    const conflict=list.filter(t=>t.contradictions.length).length;
+    return `<div class="sum-card">
+      <div class="sum-head"><span class="g">${esc(g)}</span><span class="c">${list.length} 条工单</span></div>
+      <div class="sum-body">
+        <div class="bar-row"><span>状态分布</span><div class="bar-track">${segs}</div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;font-size:12px;color:var(--text2)">
+          ${QORDER.map(s=>`<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${STATUS[s].color};margin-right:4px"></span>${STATUS[s].label} <b style="color:var(--text)">${cnt(s)}</b></span>`).join('')}
+        </div>
+      </div>
+      <div class="sum-foot">跨群转派 <b>${cross}</b> · 待核实 <b>${verify}</b> · 未解决矛盾 <b>${conflict}</b></div>
+    </div>`;
+  }).join('');
+}
+
+/* ==================== 渲染：详情抽屉 ==================== */
+function openDrawer(id){
+  state.openId=id;state.tab='detail';
+  $('#drawer').classList.add('show');$('#overlay').classList.add('show');
+  renderDrawer();
+}
+function closeDrawer(){state.openId=null;$('#drawer').classList.remove('show');$('#overlay').classList.remove('show');}
+function renderDrawer(){
+  const t=tickets.find(x=>x.id===state.openId);if(!t)return;
+  const st=STATUS[effectiveStatus(t)];
+  $('#drHead').innerHTML=`<button class="dr-close" id="drCloseBtn">×</button>
+    <span class="tid">${t.id}</span><h2>${esc(t.title)}</h2>
+    <div class="meta"><span class="st ${st.cls}">${st.label}</span>
+      ${t.needsVerify?'<span class="st st-verify">含待核实</span>':''}
+      <span class="chip">优先级 ${esc(t.priority)}</span>
+      <span class="chip">版本 v${t.version}</span>
+      <span class="chip">当前状态以工单记录为准</span></div>`;
+  $$('#drTabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===state.tab));
+  const body=$('#drBody');
+  if(state.tab==='detail')body.innerHTML=renderDetail(t);
+  else if(state.tab==='timeline')body.innerHTML=renderTimeline(t);
+  else if(state.tab==='raw')body.innerHTML=renderRaw(t);
+  else if(state.tab==='evidence')body.innerHTML=renderEvidence(t);
+  else if(state.tab==='version')body.innerHTML=renderVersion(t);
+  $('#drCloseBtn').onclick=closeDrawer;
+  bindDrawerActions(t);
+}
+function cells(pairs){return pairs.map(p=>`<div class="info-cell"><div class="k">${p[0]}</div><div class="v">${p[1]}</div></div>`).join('');}
+function renderDetail(t){
+  return `${t.needsVerify?'<div class="notice verify">⚑ 本单包含待核实信息（物流轨迹 / 外部报价 / 双方说法等），未确认前不作为事实依据，也不作为结算或定责依据。</div>':''}
+  ${t.contradictions.length?`<div class="sec"><div class="sec-t">未解决矛盾</div>${t.contradictions.map(c=>`<div class="notice conflict">${esc(c)}</div>`).join('')}</div>`:''}
+  <div class="sec"><div class="sec-t">基本信息</div>
+    <div class="info-grid">${cells([
+      ['责任人',esc(t.assignee||'—')],['来源群组',esc(t.group||'—')],
+      ['客户',esc(t.customer||'—')],['车辆',t.vehicle?`<span class="chip plate">${esc(t.vehicle)}</span>`:'—'],
+      ['订单号',t.order?`<span class="mono">${esc(t.order)}</span>`:'—'],['跟进时间',dueLabel(t)],
+      ['创建时间',fullDate(t.createdOffset)],['当前状态',STATUS[effectiveStatus(t)].label+' · v'+t.version]
+    ])}</div></div>
+  <div class="sec"><div class="sec-t">证据编号</div>
+    ${t.evidence.length?t.evidence.map(e=>`<div class="evi-item"><span class="ecode">${esc(e)}</span><span>关联证据附件已归档</span></div>`).join(''):'<div class="hint">暂无证据编号</div>'}
+  </div>
+  ${t.notes?`<div class="sec"><div class="sec-t">备注</div><div class="hint" style="font-size:12px">${esc(t.notes)}</div></div>`:''}`;
+}
+function renderTimeline(t){
+  const colors={创建:'#3f74a8',跟进:'#cf8a19',消息:'#8b979e',矛盾:'#c0392b',转派:'#a9701a',完成:'#4f8a63'};
+  return `<div class="sec" style="margin-top:0"><div class="sec-t">事项时间线</div>
+    <div class="timeline">${t.timeline.map(e=>`<div class="tl-item" style="--tc:${colors[e.type]||'#c2821b'}">
+      <div class="tl-time">${esc(e.time)}<span class="tl-type">${esc(e.type)}</span></div>
+      <div class="tl-content">${esc(e.content)}</div></div>`).join('')}</div></div>
+    <div class="sec"><div class="sec-t">添加跟进记录</div>
+      <div class="follow-box"><input id="followInput" placeholder="输入跟进内容，回车提交"><button id="addFollowBtn">添加</button></div>
+      <div class="hint">跟进记录会写入时间线并推送提醒（预留 ERP / 助手接口）</div>
+    </div>`;
+}
+function renderRaw(t){
+  return `<div class="notice">以下为群聊原始消息引用，仅供追溯。当前状态与处理结论以工单记录为准。</div>
+    <div class="sec"><div class="sec-t">原始消息（${t.raw.length} 条）</div>
+    ${t.raw.map(m=>`<div class="raw-msg"><div class="m-h"><b>${esc(m.sender)}</b><span>${esc(m.time)}</span><span class="chip">${esc(m.group)}</span></div>
+      <div class="m-c">${esc(m.content)}</div></div>`).join('')}</div>`;
+}
+function renderEvidence(t){
+  return `<div class="sec" style="margin-top:0"><div class="sec-t">证据附件</div>
+    ${t.evidence.length?t.evidence.map((e,i)=>`<div class="evi-item"><span class="ecode">${esc(e)}</span>
+      <div><div style="color:var(--text);font-weight:600">证据附件 ${i+1}</div>
+      <div class="hint">签收照片 / 沟通记录 / 系统截图（附件内容与 ERP 归档关联，预留接口）</div></div></div>`).join('')
+      :'<div class="empty"><b>暂无证据附件</b>可在群聊提炼时补充证据编号</div>'}</div>`;
+}
+function renderVersion(t){
+  return `<div class="notice">同一事项后续消息合并后，版本递增并保留历史快照，可随时回溯当时状态。</div>
+    <div class="sec"><div class="sec-t">版本历史（共 ${t.history.length} 版）</div>
+    ${[...t.history].reverse().map(h=>`<div class="ver-item">
+      <div class="ver-head" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span><b>v${h.v}</b> &nbsp; ${esc(h.change)}</span><span class="hint">${esc(h.time)} ▾</span>
+      </div>
+      <div class="ver-detail">
+        <div class="kv"><b>当时状态：</b>${STATUS[h.snapshot.status]?.label||h.snapshot.status||'—'}</div>
+        <div class="kv"><b>责任人：</b>${esc(h.snapshot.assignee||'—')}</div>
+        ${h.snapshot.title?`<div class="kv"><b>标题：</b>${esc(h.snapshot.title)}</div>`:''}
+      </div></div>`).join('')}</div>`;
+}
+function bindDrawerActions(t){
+  const add=()=>{
+    const inp=$('#followInput');if(!inp||!inp.value.trim())return;
+    t.timeline.push(tl(nowStamp(),'跟进',inp.value.trim()));
+    t.version+=1;
+    t.history.push(ver(t.version,nowStamp(),'添加跟进记录',{status:t.status,assignee:t.assignee,title:t.title}));
+    save();renderAll();renderDrawer();toast('跟进记录已写入时间线');
+  };
+  const btn=$('#addFollowBtn');if(btn)btn.onclick=add;
+  const inp=$('#followInput');if(inp)inp.onkeydown=e=>{if(e.key==='Enter')add();};
+}
+
+/* ==================== 导入解析 ==================== */
+const SAMPLE=`王铁锤 09:32 @李伟 和记火锅那单液蜡，客户说还没到，查下车豫A·8F621的位置，订单DD20261116001
+李伟 09:35 我查一下轨迹，这个要核实
+张敏 09:41 @王铁锤 客户刚打电话又催了，说再不到就投诉，今天必须处理`;
+function parseMessages(text){
+  return text.split(/\n+/).map(s=>s.trim()).filter(Boolean).map(line=>{
+    let m=line.match(/^([^\s:：\[\]]{1,12})\s+(\d{1,2}:\d{2})\s*[：:]?\s*(.*)$/);
+    if(m)return {sender:m[1],time:m[2],content:m[3]};
+    m=line.match(/^(\d{1,2}:\d{2})\s+([^\s:：]{1,12})\s*[：:]\s*(.*)$/);
+    if(m)return {sender:m[2],time:m[1],content:m[3]};
+    return {sender:'未知',time:'--:--',content:line};
+  });
+}
+function extractFacts(msgs){
+  const all=msgs.map(m=>m.content).join(' ');
+  const plate=(all.match(/[京沪粤豫鲁冀苏浙皖鄂湘川渝][A-Z]·?[A-Z0-9]{5,6}/)||[])[0]||'';
+  const order=(all.match(/(?:订单|单号|DD)[号]?[:：\s#]*([A-Za-z0-9]{8,})/)||[])[1]||'';
+  const mentions=[...all.matchAll(/@([\u4e00-\u9fa5A-Za-z0-9_]{2,10})/g)].map(x=>x[1]);
+  const verify=/核实|确认|查一下|轨迹|定位|待查|质量|核价/.test(all);
+  const urgent=/逾期|超时|今天必须|赶紧|急|投诉|再不到/.test(all);
+  const conflict=/不一致|说法|投诉|没收到|说.*但/.test(all);
+  const customer=(all.match(/([\u4e00-\u9fa5]{2,8}(?:酒店|火锅|粮油|食堂|商贸|饭庄))/)||[])[1]||'';
+  const title=(msgs.find(m=>m.content.length>12)?.content||msgs[0]?.content||'新事项').slice(0,32);
+  return {plate,order,mentions,verify,urgent,conflict,customer,title};
+}
+function parseChat(){
+  const text=$('#impText').value.trim();
+  if(!text){toast('请先粘贴聊天内容');return;}
+  const group=$('#impGroup').value||GROUPS[0];
+  const msgs=parseMessages(text);
+  const f=extractFacts(msgs);
+  const match=tickets.find(t=>(f.order&&t.order===f.order)||(f.plate&&t.vehicle===f.plate)||(f.customer&&t.customer===f.customer));
+  const suggestedStatus=f.verify?'verify':(f.urgent?'overdue':'pending');
+  state.draft={group,msgs,f,match,suggestedStatus};
+  $('#parseArea').innerHTML=`<div class="parse-result">
+    <div class="pr-head">解析结果 · ${msgs.length} 条消息 · <span style="color:${match?'var(--overdue)':'var(--done)'}">${match?'发现可合并工单':'新事项'}</span></div>
+    <div class="pr-body">
+      ${match?`<div class="merge-tip">检测到与现有工单 <b>${match.id}</b>（${esc(match.title)}）关联，可合并：追加原始消息、时间线并保留历史版本。</div>`:''}
+      <div class="pr-facts">
+        ${f.plate?`<span class="chip plate">${esc(f.plate)}</span>`:''}
+        ${f.order?`<span class="chip evi">订单 ${esc(f.order)}</span>`:''}
+        ${f.customer?`<span class="chip">${esc(f.customer)}</span>`:''}
+        ${f.mentions.length?`<span class="chip">@${f.mentions.map(esc).join(' @')}</span>`:''}
+        ${f.verify?'<span class="chip verify">含待核实信息</span>':''}
+        ${f.conflict?'<span class="chip conflict">疑似矛盾</span>':''}
+      </div>
+      <div class="pr-edit">
+        <div class="full"><label class="hint">事项标题</label><input id="dTitle" value="${ATTR(f.title)}"></div>
+        <div><label class="hint">责任人</label><input id="dAssignee" value="${ATTR(f.mentions[0]||'')}" placeholder="姓名"></div>
+        <div><label class="hint">状态</label><select id="dStatus">${QORDER.map(s=>`<option value="${s}" ${s===suggestedStatus?'selected':''}>${STATUS[s].label}</option>`).join('')}</select></div>
+        <div><label class="hint">客户</label><input id="dCustomer" value="${ATTR(f.customer)}"></div>
+        <div><label class="hint">车辆</label><input id="dVehicle" value="${ATTR(f.plate)}"></div>
+      </div>
+    </div></div>`;
+  $('#confirmAddBtn').style.display='inline-flex';
+  $('#parseBtn').style.display='none';
+}
+function confirmAdd(){
+  const d=state.draft;if(!d)return;
+  const title=$('#dTitle').value.trim()||'群聊提炼事项';
+  const assignee=$('#dAssignee').value.trim()||'未指派';
+  const status=$('#dStatus').value;
+  const customer=$('#dCustomer').value.trim();
+  const vehicle=$('#dVehicle').value.trim();
+  if(d.match){
+    const t=d.match;
+    t.raw.push(...d.msgs.map(m=>msg(d.group,m.sender,'今天 '+m.time,m.content)));
+    t.timeline.push(tl(nowStamp(),'消息','合并新群聊消息：'+title.slice(0,20)));
+    t.version+=1;
+    t.history.push(ver(t.version,nowStamp(),'合并群聊消息并修订',{status:t.status,assignee:t.assignee,title:t.title}));
+    if(d.f.conflict&&!t.contradictions.length)t.contradictions.push('新合并消息中出现说法不一致，待核实');
+    if(d.f.verify)t.needsVerify=true;
+    toast(`已合并至工单 <b>${t.id}</b>，版本升至 v${t.version}`);
+    state.openId=t.id;
+  }else{
+    const id='GD-2026-0117-'+String(tickets.length+1).padStart(3,'0');
+    const t={id,title,status,assignee,group:d.group,customer,vehicle,order:d.f.order||'',
+      dueOffset:status==='overdue'?-1:(status==='due'?0:2),createdOffset:0,
+      evidence:d.f.order?['证-'+fullDate(0)+'-NEW']:[],
+      contradictions:d.f.conflict?['群聊消息中存在说法不一致，待核实']:[],
+      crossGroup:false,needsVerify:d.f.verify,priority:d.f.urgent?'高':'中',version:1,
+      raw:d.msgs.map(m=>msg(d.group,m.sender,'今天 '+m.time,m.content)),
+      timeline:[tl(nowStamp(),'创建','从群聊消息提炼生成工单')],
+      history:[ver(1,nowStamp(),'工单创建',{status,assignee,title})],notes:''};
+    tickets.unshift(t);
+    toast(`已生成工单 <b>${id}</b>`);
+    state.openId=id;
+  }
+  save();closeImport();renderAll();openDrawer(state.openId);
+}
+
+/* ==================== 存取 ==================== */
+function save(){
+  try{localStorage.setItem('logi_tickets_v1',JSON.stringify(tickets));}catch(e){}
+}
+function load(){
+  try{const s=localStorage.getItem('logi_tickets_v1');if(s&&JSON.parse(s).length){tickets=JSON.parse(s);return;}}catch(e){}
+  seedData();save();
+}
+function resetData(){localStorage.removeItem('logi_tickets_v1');seedData();save();renderAll();toast('示例数据已重置');}
+
+/* ==================== 交互绑定 ==================== */
+function bind(){
+  $('#queues').onclick=e=>{const q=e.target.closest('.queue');if(!q)return;
+    state.status=state.status===q.dataset.q?'':q.dataset.q;syncFilters();renderAll();};
+  $('#drTabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;state.tab=b.dataset.tab;renderDrawer();};
+  $('#overlay').onclick=closeDrawer;
+  $('#tableWrap').onclick=e=>{const tr=e.target.closest('tr[data-id]');if(tr)openDrawer(tr.dataset.id);};
+  $$('.viewtabs button').forEach(b=>b.onclick=()=>{
+    state.view=b.dataset.view;
+    $$('.viewtabs button').forEach(x=>x.classList.toggle('active',x===b));
+    $('#listView').style.display=state.view==='list'?'':'none';
+    $('#summaryView').style.display=state.view==='summary'?'':'none';
+    renderAll();
+  });
+  $('#filters').onchange=e=>{const f=e.target.dataset.filter;if(f){state[f]=e.target.value;renderAll();}};
+  $('#filterToggle').onclick=()=>{$('#filters').classList.toggle('open');};
+  $('#clearFilters').onclick=()=>{Object.assign(state,{status:'',assignee:'',group:'',customer:'',vehicle:'',order:'',q:''});
+    $('#searchInput').value='';syncFilters();renderAll();};
+  $('#searchInput').oninput=e=>{state.q=e.target.value;renderAll();};
+  $('#openImportBtn').onclick=openImport;
+  $('#closeImportBtn').onclick=closeImport;
+  $('#cancelImportBtn').onclick=closeImport;
+  $('#parseBtn').onclick=parseChat;
+  $('#confirmAddBtn').onclick=confirmAdd;
+  $('#loadSampleBtn').onclick=()=>{$('#impText').value=SAMPLE;};
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();closeImport();}});
+}
+function openImport(){
+  state.draft=null;
+  $('#impGroup').innerHTML=GROUPS.map(g=>`<option value="${ATTR(g)}">${esc(g)}</option>`).join('');
+  $('#parseArea').innerHTML='';$('#confirmAddBtn').style.display='none';$('#parseBtn').style.display='inline-flex';
+  $('#importModal').classList.add('show');
+}
+function closeImport(){$('#importModal').classList.remove('show');state.draft=null;}
+let toastTimer;
+function toast(html){const el=$('#toast');el.innerHTML=html;el.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2600);}
+function renderAll(){renderQueues();renderList();renderSummary();updateRemind();
+  const on=['assignee','group','customer','vehicle','order','status'].some(k=>!!state[k]);
+  const dot=$('.filter-toggle i');if(dot)dot.style.background=on?'var(--amber)':'#c3cbd0';}
+function updateRemind(){
+  const n=tickets.filter(t=>t.status!=='done'&&t.dueOffset<=0).length;
+  $('#remindCount').textContent=n;
+}
+
+/* ==================== 启动 ==================== */
+load();renderFilterOptions();syncFilters();bind();renderAll();
+</script>
+</body>
+</html>
