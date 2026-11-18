@@ -268,11 +268,39 @@ async function fetchNotifications(phone, opts = {}) {
 }
 
 /* ---------------- 通知 -> 工单提炼规则 ---------------- */
+// 业务白名单：命中才认为值得转工单。宁可漏掉几条，也不让银行短信/新闻推送灌进工单池
+const BIZ_RE = /快递|物流|发货|到货|收货|签收|派送|揽收|转运|退货|拦截|理赔|运单|单号|包裹|驿站|取件|中通|韵达|顺丰|邮政|订单|下单|付款|支付|交易|退款|买家|卖家|评价|油|液蜡|蜡|灶具|燃烧|燃料|配送|装车|卸货|司机|车牌|货车|运费|货款|报价|采购|批发|客户|酒店|火锅|食堂|仓库|库存|有人移动/;
+
+function notifyText(n) {
+  return String(n.msg || n.data?.msg || n.content || '').replace(/\s+/g, ' ').trim();
+}
+
+function isBizNotification(n) {
+  return BIZ_RE.test(notifyText(n));
+}
+
+// 同一通知常被重复推送多次，按正文前 60 字去重，只留最新一条
+function dedupeByText(list) {
+  const seen = new Set();
+  const out = [];
+  for (const n of list) {
+    const key = notifyText(n).slice(0, 60);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(n);
+  }
+  return out;
+}
+
 function extractFromNotification(n, fallbackPhone) {
   const text = String(n.msg || n.data?.msg || n.content || '').replace(/\s+/g, ' ').trim();
   const cleanTitle = text.replace(/^(com\.[\w.]+|UID[:：]\s*\d+|Redmi\s+\w+|[\d-]{10}\s[\d:]{8})/g, '').replace(/\s+/g, ' ').trim() || text;
   const plate = (text.match(/[京沪粤豫鲁冀苏浙皖鄂湘川渝][A-Z]·?[A-Z0-9]{5,6}/) || [])[0] || '';
-  const order = (text.match(/(?:订单|单号|DD)[号]?[:：\s#]*([A-Za-z0-9]{8,})/) || [])[1] || '';
+  // 单号：优先取「订单/单号/运单」后的编号，其次取快递公司前缀号，最后长串数字兜底
+  const order = (text.match(/(?:订单|单号|运单|DD)[号]?[:：\s#]*([A-Za-z0-9]{8,})/) || [])[1]
+    || (text.match(/\b(?:SF|YT|JD|ZTO|STO|YD|JT)[A-Za-z0-9]{8,}\b/) || [])[0]
+    || (text.match(/\b(\d{12,18})\b/) || [])[1]
+    || '';
   const customer = (text.match(/([\u4e00-\u9fa5]{2,8}(?:酒店|火锅|粮油|食堂|商贸|饭庄))/) || [])[1] || '';
   const verify = /核实|确认|待查|轨迹|定位|质量/.test(text);
   const urgent = /逾期|超时|催|投诉|急|赶紧|再不/.test(text);
@@ -499,13 +527,19 @@ async function handleApi(req, res, url) {
     const u = requireAuth(req, res); if (!u) return;
     try {
       const queryPhone = url.searchParams.get('phone') || '';
+      const bizOnly = url.searchParams.get('bizOnly') !== '0';
       const data = await fetchNotifications(queryPhone, {
-        limit: Number(url.searchParams.get('limit') || 50),
+        limit: Number(url.searchParams.get('limit') || (bizOnly ? 300 : 50)),
         keyword: url.searchParams.get('keyword') || ''
       });
-      const list = data.notifications || data.data || [];
+      const rawList = data.notifications || data.data || [];
+      const uniq = dedupeByText(rawList);
+      const list = bizOnly ? uniq.filter(isBizNotification) : uniq;
       const drafts = list.map(n => extractFromNotification(n, queryPhone));
-      return sendJson(res, 200, { drafts, total: data.total, space: data.space });
+      return sendJson(res, 200, {
+        drafts, total: data.total, space: data.space,
+        filtered: { raw: rawList.length, deduped: uniq.length, kept: list.length }
+      });
     } catch (e) { return sendJson(res, 502, { error: e.message }); }
   }
 
