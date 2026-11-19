@@ -1,5 +1,5 @@
 /**
- * 物流工单控制台 - 全栈服务（零依赖，Node 内置模块）
+ * 微信流工单控制台 - 全栈服务（零依赖，Node 内置模块）
  * 职责：静态托管 / 用户与权限 / 工单 CRUD / haishuoclaw 通知代理与转工单
  */
 const http = require('http');

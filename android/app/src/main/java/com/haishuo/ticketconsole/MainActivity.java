@@ -57,7 +57,7 @@ public class MainActivity extends Activity {
 
         // 顶部细标题栏：点击 / 长按可重新设置服务器地址
         TextView title = new TextView(this);
-        title.setText("物流工单控制台");
+        title.setText("微信流工单控制台");
         title.setTextColor(Color.parseColor("#333333"));
         title.setTextSize(13);
         title.setGravity(Gravity.CENTER_VERTICAL);

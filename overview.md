@@ -1,4 +1,4 @@
-# 群事项 · 物流工单控制台 — 交付说明
+# 微信流工单控制台 — 交付说明
 
 ## 在线与立项
 - 线上访问（全栈版）：<https://logistics-ticket-console.app.workbuddy.host/?sharecode=D22JKAMYR2>
@@ -7,14 +7,14 @@
 
 ## 本次升级（v2.0 全栈版）
 - 从单文件静态网页升级为全栈应用：Node 零依赖后端 + 服务端数据存储 + 用户登录权限。
-- Android APK：`物流工单控制台.apk`（WebView 套壳，默认指向线上地址，标题栏可改服务器地址）。
+- Android APK：`微信流工单控制台.apk`（WebView 套壳，默认指向线上地址，标题栏可改服务器地址）。
 - 用户管理后台：管理员可增删用户、设置角色（管理员/成员）和可见群组，成员按群组隔离数据。
 - HaishuoClaw 通知转工单：服务端代理云端 API（密钥不暴露前端），拉取手机通知→规则提炼→确认生成工单。
 - 默认管理员：admin / admin123（登录后请改密码）。
 
 ## 交付物
 - 线上网页（电脑 / 手机浏览器）
-- `物流工单控制台.apk` — Android 安装包
+- `微信流工单控制台.apk` — Android 安装包
 - `server.js` + `public/index.html` — 全栈源码
 - `android/` — APK 工程（可重新打包）
 - `logistics-ticket-console.html` — 早期单文件版（保留存档）

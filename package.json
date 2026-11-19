@@ -2,7 +2,7 @@
   "name": "logistics-ticket-console",
   "version": "2.0.0",
   "private": true,
-  "description": "微信群事项/物流工单控制台 - 全栈版（用户管理 + haishuoclaw 通知转工单）",
+  "description": "微信流工单控制台 - 把微信群消息整理成可追踪的物流工单（全栈版：用户管理 + haishuoclaw 通知转工单）",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
